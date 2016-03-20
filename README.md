@@ -1,0 +1,2 @@
+# SocialVisualization
+Explored the provided StackOverflow searching log data​. Designed an interactive social visualization web application to explore and discover facts and patterns in users searching behavior. Visualize the query type breakdown of a particular student as well its comparison with other students. Data processing was done using javascript. Data visualization was performed using d3.js
