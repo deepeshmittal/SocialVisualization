@@ -1,0 +1,398 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+body{
+    width:1340px;
+    margin:50px auto;
+}
+.outer {
+    width: 1300px;
+    height: 475px;
+    overflow: auto;
+    margin-left: 20px;
+    margin-bottom:20px;
+}
+.inner {
+    width: 2800px;
+    height:450px;
+}
+#dashboard {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+#pc_histogram {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+
+path {  stroke: #fff; }
+path:hover {  opacity:0.9; }
+rect:hover {  fill:blue; }
+.axis {  font: 10px sans-serif; }
+.legend tr{    border-bottom:1px solid grey; }
+.legend tr:first-child{    border-top:1px solid grey; }
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {  display: none; }
+.legend{
+    margin-bottom:76px;
+    display:inline-block;
+    border-collapse: collapse;
+    border-spacing: 0px;
+}
+.legend td{
+    padding:4px 5px;
+    vertical-align:bottom;
+}
+.legendFreq, .legendPerc{
+    align:right;
+    width:50px;
+	
+	
+}
+
+.d3-tip {
+  line-height: 1;
+  font-weight: bold;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+  box-sizing: border-box;
+  display: inline;
+  font-size: 10px;
+  width: 100%;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.8);
+  content: "\25BC";
+  position: absolute;
+  text-align: center;
+}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+  margin: -1px 0 0 0;
+  top: 100%;
+  left: 0;
+}
+
+</style>
+<body>
+
+<div id='dashboard'>
+        <div class="outer">
+                <div class="inner">
+                        <div id="histogram">
+                        </div>
+                </div>
+        </div>
+	<h3 style="text-align:center">Figure 1: Number of operation performed by students</h3>
+	<div id="pc_histogram">
+	</div>
+	<h3 style="text-indent: 15.9em;"><pre style="font-family:Times New Roman;">Figure 2: Operation type break-up                                                 Figure 3: Tabular display of percentage breakup</pre></h3><br>
+	<hr>
+	<div id="text_histogram">
+		<h2>Assignment 1 - CS591 : Adaptive Web</h2>
+		<h3 style="font-style:italic; margin-bottom:0px;">Submitted By : Deepesh Mittal</h3>
+		<h3 style="font-style:italic; margin-top:0px;">ASU ID : 1208664752</h3>
+		<p>This project captures student's search log and visualize usage pattern of a particular student as well as it's comparison with different student. 
+		   This basically visualize number of operations performed by student, number of times different operation were performed, percentage usage of student as compare to other student and percentage breakup of different type of operations. Below are the implementation details </p>
+		<ul>
+                        <li>Script has been written which load "class_operation.csv" into array.</li>
+                        <li>From this csv, username and operation has been filtered for each log.</li>
+                        <li>Then number of different operation has been extracted for the same user and save it to object array.</li>
+			<li>Then the final array has been passed to barchart and piechart for visualization</li>
+                </ul>
+		<p>Below is the description of each figure:</p>
+
+		<p style="font-weight:bold;">Figure 1</p>
+		<p>This visualize total number of operations of all users in form of bar chart.</p>
+		<p style="font-style:italic;">Interaction:</p>
+		<ul>
+			<li>On mouse hover, a tool tip display occur on top of bar which display usage percentage of that user as compare to total number of operation by all users.</li>
+                        <li>On mouse hover, piechart (figure 2) update with break-up of different type of operation performed by selected user.</li>
+                        <li>On mouse hover, table (figure 3) update with number of times and percentage of different operations performed by selected user</li>
+		</ul>
+		<p style="font-weight:bold;">Figure 2</p>
+                <p>This visualize total number of different operations for all users in form of pie chart.</p>
+                <p style="font-style:italic;">Interaction:</p>
+                <ul>
+                        <li>On mouse hover on a pie segment, updates bar charts (figure 1) for all user with number of times selected operation has been performed.</li>
+                </ul>
+		<p style="font-weight:bold;">Figure 3</p>
+                <p>Tabular information of total number of different operations performed by users.</p>
+		<h4 style="font-style:italic; margin-top:20px;">References:</h4>
+		<p>Below are the links for the templates used for this project:</p>
+		<ul>
+			<li><a href="http://bl.ocks.org/NPashaP/96447623ef4d342ee09b">http://bl.ocks.org/NPashaP/96447623ef4d342ee09b</a></li>
+                        <li><a href="http://bl.ocks.org/Caged/6476579">http://bl.ocks.org/Caged/6476579</a></li>
+                </ul>
+
+
+	</div>
+</div>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+<script>
+function dashboard(id, fData){
+    var barColor = "#4db8ff";
+    var total_operation = 0;
+    function segColor(c){ return {target_clicked:"#807dba", scroll_down:"#ff704d", scroll_up:"#e08214",select:"#41ab5d"}[c]; }
+    
+    // compute total for each state.
+    fData.forEach(function(d){d.total=d.freq.target_clicked+d.freq.scroll_down+d.freq.scroll_up+d.freq.select;});
+    fData.forEach(function(d){total_operation += d.total;});
+
+    // calculate total frequency by segment for all state.
+    var tF = ['target_clicked','scroll_down','scroll_up','select'].map(function(d){ 
+        return {type:d, freq: d3.sum(fData.map(function(t){ return t.freq[d];}))}; 
+    });    
+    
+    // calculate total frequency by state for all segment.
+    var sF = fData.map(function(d){return [d.User,d.total];});
+
+    var hG = histoGram("#histogram",sF), // create the histogram.
+        pC = pieChart("#pc_histogram", tF), // create the pie-chart.
+        leg= legend("#pc_histogram",tF);  // create the legend.
+	
+    // function to handle histogram.
+    function histoGram(id1, fD){
+        var hG={},    hGDim = {t: 60, r: 0, b: 30, l: 0};
+        hGDim.w = 2800 - hGDim.l - hGDim.r, 
+        hGDim.h = 450 - hGDim.t - hGDim.b;
+        
+	//create svg for histogram.
+        var hGsvg = d3.select(id1).append("svg")
+            .attr("width", hGDim.w + hGDim.l + hGDim.r)
+            .attr("height", hGDim.h + hGDim.t + hGDim.b).append("g")
+            .attr("transform", "translate(" + hGDim.l + "," + hGDim.t + ")");
+	
+        // create function for x-axis mapping.
+        var x = d3.scale.ordinal().rangeRoundBands([0, hGDim.w], 0.1)
+                .domain(fD.map(function(d) { return d[0]; }));
+
+        // Add x-axis to the histogram svg.
+        hGsvg.append("g").attr("class", "x axis")
+	    .attr("transform", "translate(0," + hGDim.h + ")")
+            .call(d3.svg.axis().scale(x).orient("bottom"));
+
+        // Create function for y-axis map.
+        var y = d3.scale.linear().range([hGDim.h, 0])
+                .domain([0, d3.max(fD, function(d) { return d[1]; })]);
+
+
+        // Create bars for histogram to contain rectangles and freq labels.
+        var bars = hGsvg.selectAll(".bar").data(fD).enter()
+                .append("g").attr("class", "bar");
+        
+        //create the rectangles.
+        bars.append("rect")
+            .attr("x", function(d) { return x(d[0]); })
+            .attr("y", function(d) { return y(d[1]); })
+            .attr("width", x.rangeBand())
+            .attr("height", function(d) { return hGDim.h - y(d[1]); })
+            .attr('fill',barColor)
+            .on("mouseover",mouseover)// mouseover is defined betarget_clicked.
+            .on("mouseout",mouseout);// mouseout is defined betarget_clicked.
+            
+        //Create the frequency labels above the rectangles.
+        bars.append("text").text(function(d){ return d3.format(",")(d[1])})
+            .attr("x", function(d) { return x(d[0])+x.rangeBand()/2; })
+            .attr("y", function(d) { return y(d[1])-5; })
+            .attr("text-anchor", "middle");
+ 
+        function mouseover(d){  // utility function to be called on mouseover.
+            // filter for selected state.
+            var st = fData.filter(function(s){ return s.User == d[0];})[0],
+                nD = d3.keys(st.freq).map(function(s){ return {type:s, freq:st.freq[s]};});
+
+	    tip = d3.tip()
+           .attr('class', 'd3-tip')
+           .offset([-10, 0])
+           .html(function(d) {
+           return "<strong>Usage:</strong> <span style='color:red'>" + ((d[1]/total_operation)*100).toFixed(2) + "% </span>";
+           })
+               
+            // call update functions of pie-chart and legend.    
+            pC.update(nD);
+            leg.update(nD);
+	    hGsvg.call(tip);
+	    tip.show(d);
+        }
+        
+        function mouseout(d){    // utility function to be called on mouseout.
+            // reset the pie-chart and legend.    
+            pC.update(tF);
+            leg.update(tF);
+	    tip.hide();
+        }
+        
+        // create function to update the bars. This will be used by pie-chart.
+        hG.update = function(nD, color){
+            // update the domain of the y-axis map to reflect change in frequencies.
+            y.domain([0, d3.max(nD, function(d) { return d[1]; })]);
+            
+            // Attach the new data to the bars.
+            var bars = hGsvg.selectAll(".bar").data(nD);
+            
+            // transition the height and color of rectangles.
+            bars.select("rect").transition().duration(500)
+                .attr("y", function(d) {return y(d[1]); })
+                .attr("height", function(d) { return hGDim.h - y(d[1]); })
+                .attr("fill", color);
+
+            // transition the frequency labels location and change value.
+            bars.select("text").transition().duration(500)
+                .text(function(d){ return d3.format(",")(d[1])})
+                .attr("y", function(d) {return y(d[1])-5; });            
+        }        
+        return hG;
+    }
+    
+    // function to handle pieChart.
+    function pieChart(id2, pD){
+        var pC ={},    pieDim ={w:850, h: 250};
+        pieDim.r = Math.min(pieDim.w, pieDim.h) / 2;
+                
+        // create svg for pie chart.
+        var piesvg = d3.select(id2).append("svg")
+            .attr("width", pieDim.w).attr("height", pieDim.h).append("g")
+            .attr("transform", "translate("+pieDim.w/2+","+pieDim.h/2+")");
+        
+        // create function to draw the arcs of the pie slices.
+        var arc = d3.svg.arc().outerRadius(pieDim.r - 10).innerRadius(0);
+
+        // create a function to compute the pie slice angles.
+        var pie = d3.layout.pie().sort(null).value(function(d) { return d.freq; });
+
+        // Draw the pie slices.
+        piesvg.selectAll("path").data(pie(pD)).enter().append("path").attr("d", arc)
+            .each(function(d) { this._current = d; })
+            .style("fill", function(d) { return segColor(d.data.type); })
+            .on("mouseover",mouseover).on("mouseout",mouseout);
+
+        // create function to update pie-chart. This will be used by histogram.
+        pC.update = function(nD){
+            piesvg.selectAll("path").data(pie(nD)).transition().duration(500)
+                .attrTween("d", arcTween);
+        }        
+        // Utility function to be called on mouseover a pie slice.
+        function mouseover(d){
+            // call the update function of histogram with new data.
+            hG.update(fData.map(function(v){ 
+                return [v.User,v.freq[d.data.type]];}),segColor(d.data.type));
+        }
+        //Utility function to be called on mouseout a pie slice.
+        function mouseout(d){
+            // call the update function of histogram with all data.
+            hG.update(fData.map(function(v){
+                return [v.User,v.total];}), barColor);
+        }
+        // Animating the pie-slice requiring a custom function which specifies
+        // how the intermediate paths should be drawn.
+        function arcTween(a) {
+            var i = d3.interpolate(this._current, a);
+            this._current = i(0);
+            return function(t) { return arc(i(t));    };
+        }    
+        return pC;
+    }
+    
+    // function to handle legend.
+    function legend(id2, lD){
+        var leg = {};
+            
+        // create table for legend.
+        var legend = d3.select(id2).append("table").attr('class','legend');
+        
+        // create one row per segment.
+        var tr = legend.append("tbody").selectAll("tr").data(lD).enter().append("tr");
+            
+        // create the first column for each segment.
+        tr.append("td").append("svg").attr("width", '16').attr("height", '16').append("rect")
+            .attr("width", '16').attr("height", '16')
+			.attr("fill",function(d){ return segColor(d.type); });
+            
+        // create the second column for each segment.
+        tr.append("td").text(function(d){ return d.type;});
+
+        // create the third column for each segment.
+        tr.append("td").attr("class",'legendFreq')
+            .text(function(d){ return d3.format(",")(d.freq);});
+
+        // create the fourth column for each segment.
+        tr.append("td").attr("class",'legendPerc')
+            .text(function(d){ return getLegend(d,lD);});
+
+        // Utility function to be used to update the legend.
+        leg.update = function(nD){
+            // update the data attached to the row elements.
+            var l = legend.select("tbody").selectAll("tr").data(nD);
+
+            // update the frequencies.
+            l.select(".legendFreq").text(function(d){ return d3.format(",")(d.freq);});
+
+            // update the percentage column.
+            l.select(".legendPerc").text(function(d){ return getLegend(d,nD);});        
+        }
+        
+        function getLegend(d,aD){ // Utility function to compute percentage.
+            return d3.format("%")(d.freq/d3.sum(aD.map(function(v){ return v.freq; })));
+        }
+
+        return leg;
+    }
+}
+</script>
+
+<script>
+
+d3.csv("class_operation.csv", function(d) {
+  
+   return {
+    operation : d.operation,
+    User : d.u_id,
+  };
+}, function(data) {
+        var freqData=[];
+
+        for (var i = 0; i < data.length; i++){
+                if (freqData.length == 0){
+                        freqData.push({User:data[i].User,freq:{target_clicked:0, scroll_down:0, scroll_up:0, select:0}})
+                        freqData[i].freq[data[i].operation] += 1;
+                }
+                else {
+                        for (var j = 0; j < freqData.length; j++){
+                                if (freqData[j].User == data[i].User){
+                                        freqData[j].freq[data[i].operation] += 1;
+                                        break;
+                                }else { 
+                                        if (j == (freqData.length - 1)){
+                                        var freq_data = {target_clicked:0, scroll_down:0, scroll_up:0, select:0};
+                                        freq_data[data[i].operation] += 1;
+                                        freqData.push({User:data[i].User,freq:freq_data});
+                                        break;
+                                        }}
+                        }
+ 
+                }
+                }
+		dashboard('#dashboard',freqData);
+}); 
+
+</script>
